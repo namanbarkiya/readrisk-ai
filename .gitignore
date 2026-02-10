@@ -34,7 +34,7 @@ yarn-error.log*
 .env*
 
 # uploaded files
-/public/uploads
+/public/uploads/*.pdf
 
 # vercel
 .vercel
