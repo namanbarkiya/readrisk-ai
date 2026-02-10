@@ -1,10 +1,5 @@
 import { useCallback, useState } from "react";
-import {
-  formatFileSize,
-  uploadFileToStorage,
-  validateFile,
-  validateFileWithParsing,
-} from "@/lib/utils/file-upload";
+import { uploadFileToStorage, validateFile } from "@/lib/utils/file-upload";
 
 export interface UploadState {
   isUploading: boolean;
@@ -136,8 +131,8 @@ export function useFileUpload(): UseFileUploadReturn {
       }));
 
       try {
-        // First validate the file with parsing check
-        const validation = await validateFileWithParsing(file);
+        // First validate the file (size and type only on client)
+        const validation = validateFile(file);
 
         if (!validation.isValid) {
           setUploadState((prev) => ({

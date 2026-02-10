@@ -48,7 +48,7 @@ export interface GeminiError {
 
 const DEFAULT_CONFIG: GeminiConfig = {
   apiKey: process.env.GEMINI_API_KEY || "",
-  model: "gemini-2.5-flash",
+  model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
   maxTokens: 8192,
   temperature: 0.1,
   timeout: 30000,

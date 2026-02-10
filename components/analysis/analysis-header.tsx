@@ -1,17 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Download,
-  RefreshCw,
-  Share2,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { Analysis, AnalysisResult } from "@/lib/types/analysis";
 
