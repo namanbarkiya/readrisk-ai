@@ -2,22 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  CircleAlert,
+  Clock3,
+  Download,
+  FileText,
+  RefreshCw,
+  Share2,
+  Sparkles,
+} from "lucide-react";
+import { Moon } from "lucide-react";
 import { toast } from "sonner";
 import { ResultsTabs } from "@/components/analysis/results-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAnalysis, useAnalysisStatus } from "@/lib/query/hooks/analysis";
-import { generateAnalysisReport } from "@/lib/utils/pdf-report";
-import {
-  cacheAnalysis,
-  getCachedAnalysis,
-} from "@/lib/utils/analysis-cache";
-import { Moon } from "lucide-react";
-import { useDarkMode } from "@/lib/hooks/use-dark-mode";
-import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
+import { useDarkMode } from "@/lib/hooks/use-dark-mode";
+import { useAnalysis, useAnalysisStatus } from "@/lib/query/hooks/analysis";
 import type { Analysis, AnalysisResult } from "@/lib/types/analysis";
+import { cn } from "@/lib/utils";
+import { cacheAnalysis, getCachedAnalysis } from "@/lib/utils/analysis-cache";
+import { generateAnalysisReport } from "@/lib/utils/pdf-report";
 
 export default function AnalysisPage() {
   const params = useParams();
@@ -159,10 +166,48 @@ export default function AnalysisPage() {
     }
   };
 
+  const statusStyles: Record<
+    Analysis["status"],
+    { label: string; classes: string; dotClasses: string }
+  > = {
+    pending: {
+      label: "Pending",
+      classes:
+        "border-amber-200/80 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200",
+      dotClasses: "bg-amber-500",
+    },
+    processing: {
+      label: "Processing",
+      classes:
+        "border-blue-200/80 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200",
+      dotClasses: "bg-blue-500 animate-pulse",
+    },
+    completed: {
+      label: "Completed",
+      classes:
+        "border-emerald-200/80 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200",
+      dotClasses: "bg-emerald-500",
+    },
+    failed: {
+      label: "Failed",
+      classes:
+        "border-red-200/80 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200",
+      dotClasses: "bg-red-500",
+    },
+  };
+
+  const currentStatus =
+    displayAnalysis?.status && statusStyles[displayAnalysis.status];
+
+  const formattedFileSize = displayAnalysis
+    ? `${(displayAnalysis.file_size / 1024 / 1024).toFixed(2)} MB`
+    : null;
+
   return (
     <div className="min-h-screen relative">
       {/* Global gradient background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-emerald-50/60 via-teal-50/40 to-cyan-50/30 dark:from-emerald-950/25 dark:via-teal-950/15 dark:to-cyan-950/10" />
+      <div className="fixed inset-0 bg-gradient-to-br from-emerald-50/70 via-teal-50/45 to-cyan-50/30 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/10" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_52%)] dark:bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_45%)]" />
 
       {/* Theme toggle */}
       <div className="fixed top-4 right-4 z-50">
@@ -182,82 +227,167 @@ export default function AnalysisPage() {
       </div>
 
       {/* Content wrapper */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
-        {/* Top Navigation */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-10 pt-8 md:px-8 md:pt-10">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/")}
-              className="gap-2"
+              className="gap-2 rounded-full bg-white/55 backdrop-blur dark:bg-neutral-900/45"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Home
             </Button>
           </div>
-          <Logo size="sm" />
+          <Logo size="sm" className="opacity-90" />
         </div>
 
         {/* Loading */}
         {isLoading && (
-          <div className="space-y-6">
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-2">Loading analysis...</p>
-            </div>
+          <div className="space-y-6 rounded-2xl border border-white/60 bg-white/75 py-14 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+            <p className="text-muted-foreground mt-2">Loading analysis...</p>
           </div>
         )}
 
         {/* Not found */}
         {!isLoading && !displayAnalysis && (
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <div className="text-4xl mb-4">❌</div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Analysis not found
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  The analysis you&apos;re looking for doesn&apos;t exist or is
-                  still processing.
-                </p>
-                <Button onClick={() => router.push("/")}>Go to Home</Button>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="border-white/70 bg-white/80 backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
+            <CardContent className="p-12 text-center">
+              <div className="mb-4 text-4xl">❌</div>
+              <h3 className="mb-2 text-lg font-semibold">Analysis not found</h3>
+              <p className="mb-4 text-muted-foreground">
+                The analysis you&apos;re looking for doesn&apos;t exist or is
+                still processing.
+              </p>
+              <Button onClick={() => router.push("/")}>Go to Home</Button>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Analysis Content (legacy layout - no reanalyze button) */}
+        {/* Analysis Content */}
         {!isLoading && displayAnalysis && (
           <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  {displayAnalysis.file_name}
-                </h1>
-                <p className="text-muted-foreground">
-                  Analysis created on{" "}
-                  {new Date(displayAnalysis.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
+            {/* Hero Header */}
+            <Card className="border-white/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
+              <CardContent className="space-y-5 p-5 md:p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-3">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/70 px-3 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      AI risk analysis report
+                    </div>
+                    <h1 className="max-w-3xl break-words text-2xl font-bold tracking-tight md:text-3xl">
+                      {displayAnalysis.file_name}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {currentStatus && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-1 font-medium",
+                            currentStatus.classes
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              currentStatus.dotClasses
+                            )}
+                          />
+                          {currentStatus.label}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/70 px-2 py-1 text-muted-foreground dark:border-white/10 dark:bg-neutral-900/70">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Created{" "}
+                        {new Date(
+                          displayAnalysis.created_at
+                        ).toLocaleDateString()}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/70 px-2 py-1 text-muted-foreground dark:border-white/10 dark:bg-neutral-900/70">
+                        <FileText className="h-3.5 w-3.5" />
+                        {displayAnalysis.file_type.toUpperCase()}{" "}
+                        {formattedFileSize}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={handleShare}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={handleDownload}
+                    >
+                      <Download className="h-4 w-4" />
+                      Export PDF
+                    </Button>
+                    {displayAnalysis.status === "failed" && (
+                      <Button
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleReanalyze}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Retry analysis
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/70 bg-white/70 p-3 dark:border-white/10 dark:bg-neutral-900/70">
+                    <p className="text-xs text-muted-foreground">Risk level</p>
+                    <p className="mt-1 text-sm font-semibold capitalize">
+                      {displayAnalysis.risk_level || "Not assessed"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/70 bg-white/70 p-3 dark:border-white/10 dark:bg-neutral-900/70">
+                    <p className="text-xs text-muted-foreground">
+                      Overall score
+                    </p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {displayAnalysis.overall_score
+                        ? `${displayAnalysis.overall_score.toFixed(1)}/100`
+                        : "Pending"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/70 bg-white/70 p-3 dark:border-white/10 dark:bg-neutral-900/70">
+                    <p className="text-xs text-muted-foreground">
+                      Last updated
+                    </p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {displayAnalysis.updated_at
+                        ? new Date(displayAnalysis.updated_at).toLocaleString()
+                        : "Not updated yet"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Status Banner */}
             {(displayAnalysis.status === "processing" ||
               displayAnalysis.status === "pending") && (
-              <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
+              <Card className="border-blue-200/80 bg-blue-50/85 backdrop-blur dark:border-blue-900/60 dark:bg-blue-950/30">
                 <CardContent className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <div className="flex items-start space-x-3">
+                    <div className="mt-0.5 h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
                     <div>
                       <p className="font-medium text-blue-900 dark:text-blue-200">
-                        Analysis in Progress
+                        Analysis in progress
                       </p>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        Your document is being analyzed. This may take a few
-                        moments. The page will update automatically.
+                        Your document is being analyzed. The page updates
+                        automatically once results are ready.
                       </p>
                     </div>
                   </div>
@@ -266,128 +396,138 @@ export default function AnalysisPage() {
             )}
 
             {displayAnalysis.status === "failed" && (
-              <Card className="border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800">
+              <Card className="border-red-200/80 bg-red-50/90 backdrop-blur dark:border-red-900/60 dark:bg-red-950/30">
                 <CardContent className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-red-600">⚠️</div>
-                    <div>
+                  <div className="flex items-start space-x-3">
+                    <CircleAlert className="mt-0.5 h-4 w-4 text-red-600" />
+                    <div className="space-y-2">
                       <p className="font-medium text-red-900 dark:text-red-200">
-                        Analysis Failed
+                        Analysis failed
                       </p>
                       <p className="text-sm text-red-700 dark:text-red-300">
-                        The analysis encountered an error. Please upload a new
-                        file from the home page.
+                        The analysis encountered an error. You can retry now or
+                        upload a new file from the home page.
                       </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/40"
+                        onClick={handleReanalyze}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Retry now
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
-
-            {/* Results Tabs */}
-            <ResultsTabs
-              analysis={displayAnalysis}
-              result={displayResult}
-              onDownload={handleDownload}
-              onShare={handleShare}
-            />
 
             {/* Processing Status Updates */}
             {(displayAnalysis.status === "processing" ||
               displayAnalysis.status === "pending") && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Processing Status</CardTitle>
+              <Card className="border-white/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Clock3 className="h-4 w-4 text-blue-500" />
+                    Processing Status
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span>File Upload</span>
-                      <span className="text-green-600">✓ Complete</span>
+                      <span>File upload</span>
+                      <span className="text-green-600">Complete</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Text Extraction</span>
-                      <span className="text-green-600">✓ Complete</span>
+                      <span>Text extraction</span>
+                      <span className="text-green-600">Complete</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>AI Analysis</span>
-                      <span className="text-blue-600">🔄 In Progress</span>
+                      <span>AI analysis</span>
+                      <span className="text-blue-600">In progress</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Score Calculation</span>
-                      <span className="text-gray-400">⏳ Pending</span>
+                      <span>Score calculation</span>
+                      <span className="text-muted-foreground">Pending</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Results Generation</span>
-                      <span className="text-gray-400">⏳ Pending</span>
+                      <span>Result generation</span>
+                      <span className="text-muted-foreground">Pending</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* File Information */}
-            <Card>
+            {/* Results Tabs - full width main section */}
+            <Card className="border-white/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
+              <CardContent className="p-4 md:p-6">
+                <ResultsTabs
+                  analysis={displayAnalysis}
+                  result={displayResult}
+                  onReanalyze={handleReanalyze}
+                  onDownload={handleDownload}
+                  onShare={handleShare}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Footer File Information */}
+            <Card className="border-white/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/80">
               <CardHeader>
                 <CardTitle>File Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
-                    <h4 className="font-medium mb-2">Document Details</h4>
+                    <h4 className="mb-2 text-sm font-medium">Document Details</h4>
                     <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>File Name:</span>
-                        <span className="font-medium">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">File Name</span>
+                        <span className="max-w-[280px] truncate font-medium">
                           {displayAnalysis.file_name}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>File Type:</span>
-                        <span className="font-medium">
-                          {displayAnalysis.file_type}
-                        </span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">File Type</span>
+                        <span className="font-medium">{displayAnalysis.file_type}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>File Size:</span>
-                        <span className="font-medium">
-                          {(displayAnalysis.file_size / 1024 / 1024).toFixed(2)}{" "}
-                          MB
-                        </span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">File Size</span>
+                        <span className="font-medium">{formattedFileSize}</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium mb-2">Analysis Details</h4>
+                    <h4 className="mb-2 text-sm font-medium">Analysis Details</h4>
                     <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>Status:</span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">Status</span>
                         <span className="font-medium capitalize">
                           {displayAnalysis.status}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Created:</span>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">Created</span>
                         <span className="font-medium">
-                          {new Date(
-                            displayAnalysis.created_at
-                          ).toLocaleString()}
+                          {new Date(displayAnalysis.created_at).toLocaleString()}
                         </span>
                       </div>
                       {displayAnalysis.updated_at && (
-                        <div className="flex justify-between">
-                          <span>Updated:</span>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Updated</span>
                           <span className="font-medium">
-                            {new Date(
-                              displayAnalysis.updated_at
-                            ).toLocaleString()}
+                            {new Date(displayAnalysis.updated_at).toLocaleString()}
                           </span>
                         </div>
                       )}
                       {displayAnalysis.overall_score && (
-                        <div className="flex justify-between">
-                          <span>Overall Score:</span>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            Overall Score
+                          </span>
                           <span className="font-medium">
                             {displayAnalysis.overall_score.toFixed(1)}/100
                           </span>
