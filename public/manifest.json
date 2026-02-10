@@ -1,0 +1,25 @@
+{
+  "name": "RiskRead AI - Intelligent Document Risk Analysis",
+  "short_name": "RiskRead AI",
+  "description": "AI-powered document risk analysis platform for identifying, assessing, and mitigating risks in documents with compliance checking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0fdfa",
+  "theme_color": "#00AB8D",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "author": "RiskRead AI",
+  "homepage_url": "https://riskread.ai",
+  "scope": "/",
+  "prefer_related_applications": false
+}
