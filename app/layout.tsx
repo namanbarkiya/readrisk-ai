@@ -70,10 +70,10 @@ export const metadata: Metadata = {
     siteName: "RiskRead AI",
     images: [
       {
-        url: "/logo.png",
-        width: 512,
-        height: 512,
-        alt: "RiskRead AI Logo",
+        url: "https://res.cloudinary.com/dvt5vkfwz/image/upload/v1770807392/riskread-ai-og.png",
+        width: 1200,
+        height: 630,
+        alt: "RiskRead AI - Intelligent Document Risk Analysis",
       },
     ],
   },
@@ -83,7 +83,9 @@ export const metadata: Metadata = {
     description:
       "Advanced AI-powered document risk analysis platform. Identify, assess, and mitigate risks in your documents with intelligent insights and compliance checking.",
     creator: "@riskreadai",
-    images: ["/logo.png"],
+    images: [
+      "https://res.cloudinary.com/dvt5vkfwz/image/upload/v1770807392/riskread-ai-og.png",
+    ],
   },
   robots: {
     index: true,
