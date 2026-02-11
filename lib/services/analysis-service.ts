@@ -184,21 +184,37 @@ export class AnalysisService {
   }
 
   /**
-   * Delete the uploaded file from disk after analysis is done
+   * Delete the uploaded file after analysis is done.
+   *
+   * - Local development: files are stored under `public/uploads` on disk.
+   * - Production (Vercel): files are stored in Vercel Blob and addressed by full HTTPS URL.
    */
   private async deleteUploadedFile(fileUrl: string): Promise<void> {
     try {
-      if (!fileUrl.startsWith("/uploads/")) return;
+      // Local filesystem cleanup (development)
+      if (fileUrl.startsWith("/uploads/")) {
+        const fs = await import("fs/promises");
+        const path = await import("path");
+        const filePath = path.join(process.cwd(), "public", fileUrl);
 
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const filePath = path.join(process.cwd(), "public", fileUrl);
+        await fs.unlink(filePath);
+        console.log("🗑️ [ANALYSIS SERVICE] Deleted local uploaded file:", fileUrl);
+        return;
+      }
 
-      await fs.unlink(filePath);
-      console.log("🗑️ [ANALYSIS SERVICE] Deleted uploaded file:", fileUrl);
+      // Vercel Blob cleanup (production): delete by URL
+      if (fileUrl.startsWith("http")) {
+        const { del } = await import("@vercel/blob");
+        await del(fileUrl);
+        console.log("🗑️ [ANALYSIS SERVICE] Deleted blob file:", fileUrl);
+      }
     } catch (error) {
       // File might already be gone — that's fine
-      console.warn("⚠️ [ANALYSIS SERVICE] Could not delete file:", fileUrl, error);
+      console.warn(
+        "⚠️ [ANALYSIS SERVICE] Could not delete file:",
+        fileUrl,
+        error
+      );
     }
   }
 

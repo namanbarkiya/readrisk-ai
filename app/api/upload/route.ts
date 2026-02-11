@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { put } from "@vercel/blob";
 import { validateFile, generateUniqueFileName } from "@/lib/utils/file-upload";
 
 export async function POST(request: NextRequest) {
@@ -25,18 +26,32 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const fileName = generateUniqueFileName(file.name);
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
+    // Decide storage strategy: use Vercel Blob when available (production),
+    // fall back to local filesystem in development.
+    let fileUrl: string;
 
-    // Write file to local filesystem
-    const filePath = path.join(uploadsDir, fileName);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    const isBlobAvailable =
+      !!process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL === "1";
 
-    // Build public URL
-    const fileUrl = `/uploads/${fileName}`;
+    if (isBlobAvailable) {
+      // Upload to Vercel Blob storage
+      const blob = await put(`uploads/${fileName}`, file, {
+        access: "public",
+        addRandomSuffix: true,
+      });
+      fileUrl = blob.url;
+    } else {
+      // Local filesystem (development only)
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+
+      const filePath = path.join(uploadsDir, fileName);
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
+
+      fileUrl = `/uploads/${fileName}`;
+    }
 
     return NextResponse.json({
       success: true,
