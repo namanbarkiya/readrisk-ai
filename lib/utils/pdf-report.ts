@@ -90,24 +90,27 @@ export function generateAnalysisReport(
   // =====================================================
   function checkPageBreak(needed: number): void {
     if (y + needed > pageHeight - 25) {
-      addFooter();
       doc.addPage();
       y = 20;
     }
   }
 
-  function addFooter(): void {
-    const pageCount = doc.getNumberOfPages();
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.muted);
-    doc.text(
-      `RiskRead AI - Document Risk Analysis Report`,
-      margin,
-      pageHeight - 10
-    );
-    doc.text(`Page ${pageCount}`, pageWidth - margin, pageHeight - 10, {
-      align: "right",
-    });
+  function addFootersOnAllPages(): void {
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.muted);
+      doc.text(`RiskRead AI - Document Risk Analysis Report`, margin, pageHeight - 10);
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, {
+        align: "right",
+      });
+
+      // Thin line above footer
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.2);
+      doc.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
+    }
   }
 
   // =====================================================
@@ -323,7 +326,7 @@ export function generateAnalysisReport(
       y += 4;
     }
 
-    addFooter();
+    addFootersOnAllPages();
 
     // Trigger download
     doc.save(exportFileName);
@@ -672,30 +675,7 @@ export function generateAnalysisReport(
   // =====================================================
   // FOOTER ON ALL PAGES
   // =====================================================
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.muted);
-    doc.text(
-      `RiskRead AI - Document Risk Analysis Report`,
-      margin,
-      pageHeight - 10
-    );
-    doc.text(
-      `Page ${i} of ${totalPages}`,
-      pageWidth - margin,
-      pageHeight - 10,
-      {
-        align: "right",
-      }
-    );
-
-    // Thin line above footer
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.2);
-    doc.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
-  }
+  addFootersOnAllPages();
 
   // =====================================================
   // SAVE

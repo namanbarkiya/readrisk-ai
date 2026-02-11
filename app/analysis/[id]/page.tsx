@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
   CircleAlert,
   Clock3,
   Download,
+  Eye,
   FileText,
   RefreshCw,
   Share2,
@@ -24,11 +25,13 @@ import { useAnalysis, useAnalysisStatus } from "@/lib/query/hooks/analysis";
 import type { Analysis, AnalysisResult } from "@/lib/types/analysis";
 import { cn } from "@/lib/utils";
 import { cacheAnalysis, getCachedAnalysis } from "@/lib/utils/analysis-cache";
+import { createMockAnalysisWithResults } from "@/lib/utils/mock-analysis";
 import { generateAnalysisReport } from "@/lib/utils/pdf-report";
 
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const analysisId = params.id as string;
   const [isDark, toggleDark] = useDarkMode();
 
@@ -38,24 +41,42 @@ export default function AnalysisPage() {
     null
   );
   const [isFromCache, setIsFromCache] = useState(false);
+  const [isMockMode, setIsMockMode] = useState(false);
+
+  // If requested via query param, load demo output
+  useEffect(() => {
+    const mockParam = searchParams?.get("mock");
+    const shouldUseMock =
+      mockParam === "1" || mockParam === "true" || analysisId === "demo";
+
+    if (!shouldUseMock) return;
+
+    const mock = createMockAnalysisWithResults(analysisId);
+    setIsMockMode(true);
+    setDisplayAnalysis(mock.analysis);
+    setDisplayResult(mock.result);
+    setIsFromCache(true);
+  }, [analysisId, searchParams]);
 
   // Try loading from localStorage immediately
   useEffect(() => {
+    if (isMockMode) return;
     const cached = getCachedAnalysis(analysisId);
     if (cached) {
       setDisplayAnalysis(cached.analysis);
       setDisplayResult(cached.result);
       setIsFromCache(true);
     }
-  }, [analysisId]);
+  }, [analysisId, isMockMode]);
 
   // Determine if we need to poll the server:
   // - If nothing cached, always poll
   // - If cached but status is not completed/failed, poll to get updates
   const needsServerPolling =
-    !isFromCache ||
-    (displayAnalysis?.status !== "completed" &&
-      displayAnalysis?.status !== "failed");
+    !isMockMode &&
+    (!isFromCache ||
+      (displayAnalysis?.status !== "completed" &&
+        displayAnalysis?.status !== "failed"));
 
   const {
     data: serverData,
@@ -71,6 +92,7 @@ export default function AnalysisPage() {
 
   // When server returns data, update display and cache if completed
   useEffect(() => {
+    if (isMockMode) return;
     if (!serverData?.analysis) return;
 
     setDisplayAnalysis(serverData.analysis);
@@ -84,17 +106,18 @@ export default function AnalysisPage() {
       cacheAnalysis(serverData.analysis, serverData.result || null);
       setIsFromCache(true);
     }
-  }, [serverData]);
+  }, [serverData, isMockMode]);
 
   // Refetch full data when status changes to completed
   useEffect(() => {
+    if (isMockMode) return;
     if (
       statusData?.status === "completed" &&
       displayAnalysis?.status !== "completed"
     ) {
       refetch();
     }
-  }, [statusData?.status, displayAnalysis?.status, refetch]);
+  }, [statusData?.status, displayAnalysis?.status, refetch, isMockMode]);
 
   // Handle errors
   useEffect(() => {
@@ -105,6 +128,38 @@ export default function AnalysisPage() {
 
   // Derive loading state
   const isLoading = !displayAnalysis && serverLoading;
+
+  const handleViewMockData = () => {
+    const mock = createMockAnalysisWithResults(analysisId);
+    setIsMockMode(true);
+    setDisplayAnalysis(mock.analysis);
+    setDisplayResult(mock.result);
+    setIsFromCache(true);
+    toast.message("Showing demo output");
+  };
+
+  const handleViewRealData = async () => {
+    if (analysisId === "demo") return;
+
+    setIsMockMode(false);
+    setIsFromCache(false);
+
+    const cached = getCachedAnalysis(analysisId);
+    if (cached) {
+      setDisplayAnalysis(cached.analysis);
+      setDisplayResult(cached.result);
+      setIsFromCache(true);
+      toast.message("Showing cached output");
+      return;
+    }
+
+    toast.message("Loading live output");
+    try {
+      await refetch();
+    } catch {
+      // errors handled by existing effect
+    }
+  };
 
   // Handle reanalysis
   const handleReanalyze = async () => {
@@ -276,7 +331,7 @@ export default function AnalysisPage() {
                   <div className="space-y-3">
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/70 px-3 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                       <Sparkles className="h-3.5 w-3.5" />
-                      AI risk analysis report
+                      {isMockMode ? "Demo output preview" : "AI risk analysis report"}
                     </div>
                     <h1 className="max-w-3xl break-words text-2xl font-bold tracking-tight md:text-3xl">
                       {displayAnalysis.file_name}
@@ -313,6 +368,28 @@ export default function AnalysisPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {!isMockMode ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleViewMockData}
+                      >
+                        <Eye className="h-4 w-4" />
+                        View mock data
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleViewRealData}
+                        disabled={analysisId === "demo"}
+                      >
+                        <Eye className="h-4 w-4" />
+                        View real data
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"

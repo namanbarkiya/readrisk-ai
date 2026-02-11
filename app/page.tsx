@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  Eye,
   FileSearch,
   FileText,
   GaugeCircle,
@@ -234,6 +235,15 @@ export default function HomePage() {
                   onClick={downloadSampleDocument}
                 >
                   Download sample document
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-full px-4"
+                  onClick={() => router.push("/analysis/demo?mock=1")}
+                >
+                  View mock output
+                  <Eye className="h-4 w-4" />
                 </Button>
               </div>
             </div>
